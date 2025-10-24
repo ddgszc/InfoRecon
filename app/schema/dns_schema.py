@@ -87,7 +87,7 @@ class DNSInfo(BaseModel):
     包含域名的所有DNS记录信息和WHOIS注册信息
     """
     domain: str = Field(description="查询的域名")
-    query_time: datetime = Field(default_factory=datetime.now, description="查询时间")
+    # query_time: datetime = Field(default_factory=datetime.now, description="查询时间")
     a_records: List[ARecord] = Field(default_factory=list, description="A记录列表")
     # aaaa_records: List[AAAARecord] = Field(default_factory=list, description="AAAA记录列表")
     cname_records: List[CNAMERecord] = Field(default_factory=list, description="CNAME记录列表")

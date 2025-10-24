@@ -10,6 +10,7 @@ dependencies = [
     "crawl4ai>=0.7.6",
     "dnspython>=2.8.0",
     "fastapi>=0.119.1",
+    "geoip2>=5.1.0",
     "pydantic-settings>=2.11.0",
     "python-whois>=0.9.6",
     "uvicorn[standard]>=0.38.0",

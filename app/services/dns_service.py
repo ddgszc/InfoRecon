@@ -254,7 +254,6 @@ class DNSService:
             # 查询所有类型的DNS记录
             dns_info = DNSInfo(
                 domain=domain,
-                query_time=datetime.now(),
                 a_records=self._query_a_records(domain),
                 # aaaa_records=self._query_aaaa_records(domain),
                 cname_records=self._query_cname_records(domain),

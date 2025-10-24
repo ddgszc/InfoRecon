@@ -12,11 +12,7 @@ from app.schema.dns_schema import (
     DNSInfo
 )
 
-from app.schema.ip_schema import (
-    GeoLocation,
-    ASNInfo,
-    IPInfo
-)
+from app.schema.ip_schema import IPInfo
 
 __all__ = [
     # DNS相关
@@ -27,8 +23,6 @@ __all__ = [
     'NSRecord',
     'DNSInfo',
     # IP相关
-    'GeoLocation',
-    'ASNInfo',
     'IPInfo',
 ]
 
