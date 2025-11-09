@@ -84,12 +84,13 @@ def clean_baidu_search_result(raw_text):
     2. 检查第一个 `###` 之前的内容是否包含"没有找到该URL。您可以直接访问"，
        如果包含则保留前面内容，否则只保留前三个 `###` 级别的结果。
     3. 移除末尾的"大家还在搜"及之后的所有内容。
+    4. 对每个 ### 栏目，只保留内容到第一个有内容的中括号[]链接。
 
     参数:
     raw_text (str): 原始的、未经处理的网页文本。
 
     返回:
-    str: 经过三步精细清洗后的文本。如果未找到有效内容，则返回空字符串。
+    str: 经过四步精细清洗后的文本。如果未找到有效内容，则返回空字符串。
     """
 
     marker = "时间不限所有网页和文件站点内检索\n百度为您找到以下结果"
@@ -127,6 +128,38 @@ def clean_baidu_search_result(raw_text):
     
     if footer_index != -1:
         content = content[:footer_index].strip()
+    
+    # 对每个 ### 栏目，只保留到第一个有内容的中括号[]
+    # 将内容按 ### 分割
+    sections = re.split(r'(^### .*$)', content, flags=re.MULTILINE)
+    cleaned_sections = []
+    
+    for i, section in enumerate(sections):
+        if section.startswith('### '):
+            # 这是一个标题行
+            cleaned_sections.append(section)
+        elif section.strip():
+            # 这是标题后的内容
+            # 查找第一个包含内容的中括号 [xxx](yyy) 模式
+            # 匹配从开始到第一个 [非空内容](链接) 的位置
+            match = re.search(r'\[([^\]]+)\]\(([^\)]+)\)', section)
+            if match:
+                # 找到第一个有内容的链接，保留到这个链接结束的位置
+                end_pos = match.end()
+                # 找到这个链接后的第一个换行符
+                newline_pos = section.find('\n', end_pos)
+                if newline_pos != -1:
+                    cleaned_sections.append(section[:newline_pos + 1])
+                else:
+                    cleaned_sections.append(section[:end_pos])
+            else:
+                # 如果没有找到链接，保留原内容
+                cleaned_sections.append(section)
+        else:
+            # 空白部分
+            cleaned_sections.append(section)
+    
+    content = ''.join(cleaned_sections).strip()
         
     return content
 

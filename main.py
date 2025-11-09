@@ -16,7 +16,7 @@ async def main():
     with open("result.md","w",encoding="utf-8") as f:
         f.write(results.markdown)
 async def ceshi():
-    results = await get_baidu_search_results("zhipin.com")
+    results = await get_baidu_search_results("alibaba.com")
     with open("result.md","w",encoding="utf-8") as f:
         f.write(results) 
 
