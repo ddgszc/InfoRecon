@@ -11,13 +11,7 @@ user = "inforecon"
 password = "inforecon"
 db = "inforecon"
 
-# OpenAI API 配置 (预留)
-# [openai]
-# api_key = ""
-# model = "gpt-4"
-# base_url = "https://api.openai.com/v1"
 
-# Redis 配置 (预留)
 # [redis]
 # host = "localhost"
 # port = 6379

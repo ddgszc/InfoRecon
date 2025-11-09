@@ -222,7 +222,7 @@ class DNSService:
             # WHOIS查询失败时返回None
             return None
     
-    def get_dns_info(self, domain: str) -> DNSInfo:
+    async def get_dns_info(self, domain: str) -> DNSInfo:
         """获取域名的完整DNS信息
         
         查询指定域名的所有DNS记录，包括A、AAAA、CNAME、MX、TXT、NS记录

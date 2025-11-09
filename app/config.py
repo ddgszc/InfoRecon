@@ -3,25 +3,20 @@ from pydantic_settings import BaseSettings, SettingsConfigDict, TomlConfigSettin
 from typing import Tuple, Type
 
 
-class DatabaseSettings(BaseModel):
-    """PostgreSQL 数据库配置"""
-    host: str = Field(default="localhost")
-    port: int = Field(default=5432)
-    user: str = Field(default="postgres")
-    password: str = Field(default="password")
-    db: str = Field(default="inforecon")
+# class DatabaseSettings(BaseModel):
+#     """PostgreSQL 数据库配置"""
+#     host: str = Field(default="localhost")
+#     port: int = Field(default=5432)
+#     user: str = Field(default="postgres")
+#     password: str = Field(default="password")
+#     db: str = Field(default="inforecon")
     
-    @property
-    def url(self) -> str:
-        """生成数据库连接 URL"""
-        return f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.db}"
+#     @property
+#     def url(self) -> str:
+#         """生成数据库连接 URL"""
+#         return f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.db}"
 
 
-class OpenAISettings(BaseModel):
-    """OpenAI API 配置"""
-    api_key: str = Field(default="")
-    model: str = Field(default="gpt-4")
-    base_url: str = Field(default="https://api.openai.com/v1")
 
 
 class RedisSettings(BaseModel):
@@ -44,8 +39,7 @@ class Settings(BaseSettings):
     app_name: str = Field(default="InfoRecon")
     
     # 嵌套配置
-    database: DatabaseSettings = Field(default_factory=DatabaseSettings)
-    openai: OpenAISettings = Field(default_factory=OpenAISettings)
+    # database: DatabaseSettings = Field(default_factory=DatabaseSettings)
     redis: RedisSettings = Field(default_factory=RedisSettings)
     
     model_config = SettingsConfigDict(

@@ -53,7 +53,7 @@ class IPService:
             # 如果查询失败（如私有IP、数据库中不存在等），返回None
             return None
     
-    def get_ip_info(self, ip: str) -> IPInfo:
+    async def get_ip_info(self, ip: str) -> IPInfo:
         """获取IP的完整信息
         
         查询指定IP的反向DNS记录和地理位置信息

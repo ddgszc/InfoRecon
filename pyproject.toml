@@ -14,5 +14,6 @@ dependencies = [
     "playwright>=1.55.0",
     "pydantic-settings>=2.11.0",
     "python-whois>=0.9.6",
+    "redis>=7.0.1",
     "uvicorn[standard]>=0.38.0",
 ]
