@@ -250,6 +250,7 @@ class DNSService:
             # 移除路径部分
             if '/' in domain:
                 domain = domain.split('/')[0]
+            print("测试dns")
             
             # 查询所有类型的DNS记录
             dns_info = DNSInfo(
