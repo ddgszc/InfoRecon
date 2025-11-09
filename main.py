@@ -1,14 +1,24 @@
-from app.services import DNSService
-from app.services import IPService
+from app.services.web_serch import get_baidu_search_results,trace_url_redirects
+import asyncio
+from crawl4ai import AsyncWebCrawler,BrowserConfig,CrawlerRunConfig
+from crawl4ai.content_filter_strategy import BM25ContentFilter
+from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 
-def main():
-    dns_service = DNSService()
-    dns_info = dns_service.get_dns_info("www.hytch.com")
-    print(dns_info.model_dump_json(indent=4, exclude={"query_time"}))
-    ip_service = IPService()
-    ip_info = ip_service.get_ip_info("8.8.8.8")
-    print(ip_info.model_dump_json(indent=4, exclude={"query_time"}))
-
+async def main():
+    browser_conf=BrowserConfig(browser_mode="chromium",user_agent_mode="random")
+    bm25_filter = BM25ContentFilter(
+    user_query="ceshi.com"
+    )
+    md_generator=DefaultMarkdownGenerator(content_filter=bm25_filter,options={"ignore_images":True})
+    crawler_config = CrawlerRunConfig(markdown_generator=md_generator)
+    async with AsyncWebCrawler(config=browser_conf) as crawler:
+        results = await crawler.arun("https://www.baidu.com/s?wd=hytch.com",config=crawler_config)
+    with open("result.md","w",encoding="utf-8") as f:
+        f.write(results.markdown)
+async def ceshi():
+    results = await get_baidu_search_results("zhipin.com")
+    with open("result.md","w",encoding="utf-8") as f:
+        f.write(results) 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(ceshi())
