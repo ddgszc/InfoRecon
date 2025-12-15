@@ -33,7 +33,7 @@ class QueryParamExtractor:
             return str(args[0])
         
         # 从关键字参数提取
-        for key in ('q', 'domain', 'ip', 'query'):
+        for key in ('q', 'domain', 'ip', 'query', 'url'):
             if key in kwargs and kwargs[key]:
                 return str(kwargs[key])
         

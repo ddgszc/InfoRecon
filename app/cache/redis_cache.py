@@ -59,7 +59,7 @@ class CacheSerializer:
         return json.dumps(cache_data, ensure_ascii=False)
     
     @staticmethod
-    def deserialize(cached_data: str, max_age_days: int = 7) -> Optional[dict]:
+    def deserialize(cached_data: str, max_age_days: int = 15) -> Optional[dict]:
         """反序列化缓存数据
         
         Args:

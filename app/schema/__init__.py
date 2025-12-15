@@ -1,6 +1,6 @@
 """数据模型定义包
 
-包含DNS、IP和Web搜索信息的数据结构定义
+包含DNS、IP、Web搜索和URL分析信息的数据结构定义
 """
 
 from app.schema.dns_schema import (
@@ -18,6 +18,10 @@ from app.schema.web_search_schema import (
     WebSearchInfo
 )
 
+from app.schema.url_schema import (
+    URLAnalysisInfo
+)
+
 __all__ = [
     # DNS相关
     'ARecord',
@@ -31,5 +35,7 @@ __all__ = [
     # Web搜索相关
     'SearchResult',
     'WebSearchInfo',
+    # URL分析相关
+    'URLAnalysisInfo',
 ]
 

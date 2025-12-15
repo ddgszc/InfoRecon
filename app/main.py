@@ -1,27 +1,36 @@
 """FastAPI应用主入口"""
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from app.api import dns_router, ip_router, web_search_router, batch_router
+from app.api import dns_router, ip_router, web_search_router, batch_router, url_router
 from app.cache import cache_manager
 from app.services.async_whois_service import AsyncWhoisService
 from app.services.ip_service import GeoIPReader
+from app.services.get_site import URLAnalyzer
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
-    # 启动时：建立Redis连接
+    # 启动时：建立Redis连接和初始化URLAnalyzer
     await cache_manager.connect()
+    
+    # 初始化URLAnalyzer
+    url_router.url_analyzer = URLAnalyzer()
+    
     yield
     # 关闭时：清理所有资源
     await cache_manager.close()
     await AsyncWhoisService.shutdown()
     await GeoIPReader.shutdown()
+    
+    # 关闭URLAnalyzer
+    if url_router.url_analyzer:
+        await url_router.url_analyzer.close()
 
 
 app = FastAPI(
     title="InfoRecon API",
-    description="信息侦察API - 提供DNS查询、IP查询、Web搜索和批量查询功能",
+    description="信息侦察API - 提供DNS查询、IP查询、Web搜索、URL分析和批量查询功能",
     version="2.0.0",
     lifespan=lifespan
 )
@@ -30,6 +39,7 @@ app = FastAPI(
 app.include_router(dns_router.router)
 app.include_router(ip_router.router)
 app.include_router(web_search_router.router)
+app.include_router(url_router.router)
 app.include_router(batch_router.router)
 
 
@@ -44,12 +54,14 @@ async def root():
             "线程池优化的WHOIS查询",
             "高并发批量查询支持",
             "Redis连接池缓存",
-            "智能速率限制"
+            "智能速率限制",
+            "URL内容分析和重定向追踪"
         ],
         "endpoints": {
             "dns": "/dns/{domain}",
             "ip": "/ip/{ip}",
             "search": "/search?q={query}",
+            "url_analyze": "/url/analyze?url={url}",
             "batch_dns": "/batch/dns",
             "batch_ip": "/batch/ip",
             "batch_search": "/batch/search"
