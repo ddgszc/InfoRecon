@@ -1,231 +1,102 @@
-import dns.resolver
-import whois
-from typing import Optional
-from datetime import datetime
+"""DNS信息查询服务
+完全异步架构，支持高并发查询
+遵循 SOLID、DRY、KISS 原则
+"""
+import asyncio
+from typing import Optional, List
 
-from app.schema.dns_schema import (
-    DNSInfo,
-    ARecord,
-    AAAARecord,
-    CNAMERecord,
-    MXRecord,
-    TXTRecord,
-    NSRecord,
-    WhoisInfo
-)
+from app.schema.dns_schema import DNSInfo
+from app.services.async_dns_resolver import DNSResolverFactory
+from app.services.async_whois_service import AsyncWhoisService
+
+
+class DomainNormalizer:
+    """域名规范化工具（单一职责原则）"""
+    
+    @staticmethod
+    def normalize(domain: str) -> str:
+        """规范化域名
+        
+        - 去除前后空格
+        - 转换为小写
+        - 移除协议前缀（http://, https://）
+        - 移除路径部分
+        """
+        domain = domain.strip().lower()
+        
+        # 移除协议前缀
+        for prefix in ('https://', 'http://'):
+            if domain.startswith(prefix):
+                domain = domain[len(prefix):]
+                break
+        
+        # 移除路径部分
+        if '/' in domain:
+            domain = domain.split('/')[0]
+        
+        return domain
 
 
 class DNSService:
     """DNS信息查询服务
     
-    提供各类DNS记录的查询功能，包括A、AAAA、CNAME、MX、TXT、NS记录
+    提供完全异步的DNS记录查询功能
+    使用组合而非继承（组合优于依赖原则）
     """
     
-    def __init__(self, timeout: float = 5.0, nameservers: Optional[list] = None):
+    def __init__(
+        self,
+        timeout: float = 5.0,
+        nameservers: Optional[List[str]] = None,
+        enable_whois: bool = True
+    ):
         """初始化DNS服务
         
         Args:
             timeout: DNS查询超时时间(秒)
             nameservers: 自定义DNS服务器列表，如 ['8.8.8.8', '8.8.4.4']
+            enable_whois: 是否启用WHOIS查询
         """
         self.timeout = timeout
-        self.resolver = dns.resolver.Resolver()
-        self.resolver.timeout = timeout
-        self.resolver.lifetime = timeout
-        
-        if nameservers:
-            self.resolver.nameservers = nameservers
+        self.nameservers = nameservers
+        self.enable_whois = enable_whois
+        self.normalizer = DomainNormalizer()
     
-    def _query_a_records(self, domain: str) -> list[ARecord]:
-        """查询A记录 - IPv4地址记录
-        
-        A记录将域名映射到IPv4地址，是最常用的DNS记录类型
+    async def _query_all_records(self, domain: str) -> dict:
+        """并发查询所有DNS记录（DRY原则 - 避免重复代码）
         
         Args:
-            domain: 要查询的域名
+            domain: 规范化后的域名
             
         Returns:
-            A记录列表
+            包含所有DNS记录的字典
         """
-        records = []
-        try:
-            answers = self.resolver.resolve(domain, 'A')
-            for rdata in answers:
-                records.append(ARecord(
-                    ip=str(rdata),
-                    ttl=answers.rrset.ttl
-                ))
-        except Exception:
-            # 如果查询失败，返回空列表
-            pass
-        return records
-    
-    def _query_aaaa_records(self, domain: str) -> list[AAAARecord]:
-        """查询AAAA记录 - IPv6地址记录
+        # 定义要查询的记录类型
+        record_types = ['A', 'CNAME', 'MX', 'TXT', 'NS']
         
-        AAAA记录将域名映射到IPv6地址，用于支持IPv6协议
-        
-        Args:
-            domain: 要查询的域名
-            
-        Returns:
-            AAAA记录列表
-        """
-        records = []
-        try:
-            answers = self.resolver.resolve(domain, 'AAAA')
-            for rdata in answers:
-                records.append(AAAARecord(
-                    ip=str(rdata),
-                    ttl=answers.rrset.ttl
-                ))
-        except Exception:
-            pass
-        return records
-    
-    def _query_mx_records(self, domain: str) -> list[MXRecord]:
-        """查询MX记录 - 邮件交换记录
-        
-        MX记录指定接收电子邮件的邮件服务器
-        priority值越小优先级越高，邮件服务器会优先尝试priority值小的服务器
-        
-        Args:
-            domain: 要查询的域名
-            
-        Returns:
-            MX记录列表
-        """
-        records = []
-        try:
-            answers = self.resolver.resolve(domain, 'MX')
-            for rdata in answers:
-                records.append(MXRecord(
-                    priority=rdata.preference,
-                    exchange=str(rdata.exchange).rstrip('.'),
-                    ttl=answers.rrset.ttl
-                ))
-        except Exception:
-            pass
-        return records
-    
-    def _query_txt_records(self, domain: str) -> list[TXTRecord]:
-        """查询TXT记录 - 文本记录
-        
-        只返回SPF记录（v=spf开头的TXT记录）
-        SPF记录用于防止邮件伪造
-        
-        Args:
-            domain: 要查询的域名
-            
-        Returns:
-            TXT记录列表（仅包含SPF记录）
-        """
-        records = []
-        try:
-            answers = self.resolver.resolve(domain, 'TXT')
-            for rdata in answers:
-                # TXT记录可能包含多个字符串，需要合并
-                text = ''.join([s.decode() if isinstance(s, bytes) else str(s) for s in rdata.strings])
-                # 只保留SPF记录
-                if text.startswith('v=spf'):
-                    records.append(TXTRecord(
-                        text=text,
-                        ttl=answers.rrset.ttl
-                    ))
-        except Exception:
-            pass
-        return records
-    
-    def _query_ns_records(self, domain: str) -> list[NSRecord]:
-        """查询NS记录 - 域名服务器记录
-        
-        NS记录指定该域名由哪台域名服务器进行解析
-        一个域名通常有多个NS记录以提供冗余和负载均衡
-        
-        Args:
-            domain: 要查询的域名
-            
-        Returns:
-            NS记录列表
-        """
-        records = []
-        try:
-            answers = self.resolver.resolve(domain, 'NS')
-            for rdata in answers:
-                records.append(NSRecord(
-                    nameserver=str(rdata).rstrip('.'),
-                    ttl=answers.rrset.ttl
-                ))
-        except Exception:
-            pass
-        return records
-    
-    def _query_cname_records(self, domain: str) -> list[CNAMERecord]:
-        """查询CNAME记录 - 别名记录
-        
-        CNAME记录将一个域名指向另一个域名，用于域名别名
-        通常用于CDN、负载均衡等场景
-        
-        Args:
-            domain: 要查询的域名
-            
-        Returns:
-            CNAME记录列表
-        """
-        records = []
-        try:
-            answers = self.resolver.resolve(domain, 'CNAME')
-            for rdata in answers:
-                records.append(CNAMERecord(
-                    target=str(rdata.target).rstrip('.'),
-                    ttl=answers.rrset.ttl
-                ))
-        except Exception:
-            pass
-        return records
-    
-    def _query_whois_info(self, domain: str) -> Optional[WhoisInfo]:
-        """查询WHOIS信息 - 域名注册信息
-        
-        查询域名的注册商、状态、注册时间、更新时间和到期时间等信息
-        
-        Args:
-            domain: 要查询的域名
-            
-        Returns:
-            WhoisInfo对象，如果查询失败返回None
-        """
-        try:
-            w = whois.whois(domain)
-            
-            # 处理日期字段 - whois库可能返回单个日期或日期列表
-            def get_first_date(date_value):
-                if isinstance(date_value, list):
-                    return date_value[0] if date_value else None
-                return date_value
-            
-            # 处理状态字段 - 可能是字符串或列表
-            status = w.status
-            if isinstance(status, str):
-                status = [status]
-            elif status is None:
-                status = []
-            
-            return WhoisInfo(
-                registrar=w.registrar,
-                status=status,
-                creation_date=get_first_date(w.creation_date),
-                updated_date=get_first_date(w.updated_date),
-                expiration_date=get_first_date(w.expiration_date)
+        # 创建所有查询任务
+        tasks = {}
+        for record_type in record_types:
+            resolver = DNSResolverFactory.get_resolver(
+                record_type,
+                self.timeout,
+                self.nameservers
             )
-        except Exception:
-            # WHOIS查询失败时返回None
-            return None
+            tasks[record_type.lower()] = resolver.safe_query(domain)
+        
+        # 并发执行所有查询
+        results = await asyncio.gather(*tasks.values(), return_exceptions=True)
+        
+        # 将结果映射回字典
+        return {
+            f"{key}_records": value if not isinstance(value, Exception) else []
+            for key, value in zip(tasks.keys(), results)
+        }
     
     async def get_dns_info(self, domain: str) -> DNSInfo:
         """获取域名的完整DNS信息
         
-        查询指定域名的所有DNS记录，包括A、AAAA、CNAME、MX、TXT、NS记录
+        并发查询所有DNS记录和WHOIS信息，最大化性能
         
         Args:
             domain: 要查询的域名
@@ -235,85 +106,91 @@ class DNSService:
             
         Example:
             >>> service = DNSService()
-            >>> dns_info = service.get_dns_info("example.com")
+            >>> dns_info = await service.get_dns_info("example.com")
             >>> print(f"A记录数量: {len(dns_info.a_records)}")
-            >>> print(f"MX记录: {dns_info.mx_records}")
         """
         try:
-            # 移除域名前后的空格和可能的协议前缀
-            domain = domain.strip().lower()
-            if domain.startswith('http://'):
-                domain = domain[7:]
-            elif domain.startswith('https://'):
-                domain = domain[8:]
+            # 规范化域名
+            normalized_domain = self.normalizer.normalize(domain)
             
-            # 移除路径部分
-            if '/' in domain:
-                domain = domain.split('/')[0]
-            print("测试dns")
+            # 创建并发任务列表
+            tasks = [
+                self._query_all_records(normalized_domain)
+            ]
             
-            # 查询所有类型的DNS记录
-            dns_info = DNSInfo(
-                domain=domain,
-                a_records=self._query_a_records(domain),
-                # aaaa_records=self._query_aaaa_records(domain),
-                cname_records=self._query_cname_records(domain),
-                mx_records=self._query_mx_records(domain),
-                txt_records=self._query_txt_records(domain),
-                ns_records=self._query_ns_records(domain),
-                whois_info=self._query_whois_info(domain)
+            # 如果启用WHOIS，添加WHOIS查询任务
+            if self.enable_whois:
+                tasks.append(AsyncWhoisService.query(normalized_domain))
+            
+            # 并发执行所有查询
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # 提取DNS记录结果
+            dns_records = results[0] if not isinstance(results[0], Exception) else {}
+            
+            # 提取WHOIS结果（如果启用）
+            whois_info = None
+            if self.enable_whois and len(results) > 1:
+                whois_info = results[1] if not isinstance(results[1], Exception) else None
+            
+            # 构建DNSInfo对象
+            return DNSInfo(
+                domain=normalized_domain,
+                a_records=dns_records.get('a_records', []),
+                cname_records=dns_records.get('cname_records', []),
+                mx_records=dns_records.get('mx_records', []),
+                txt_records=dns_records.get('txt_records', []),
+                ns_records=dns_records.get('ns_records', []),
+                whois_info=whois_info
             )
             
-            return dns_info
-            
         except Exception as e:
-            # 如果发生错误，返回包含错误信息的DNSInfo对象
+            # 返回包含错误信息的DNSInfo对象
             return DNSInfo(
                 domain=domain,
-                query_time=datetime.now(),
                 error=str(e)
             )
     
-    def get_dns_info_by_type(self, domain: str, record_type: str) -> DNSInfo:
+    async def get_dns_info_by_type(
+        self,
+        domain: str,
+        record_type: str
+    ) -> DNSInfo:
         """按指定类型查询DNS记录
         
         Args:
             domain: 要查询的域名
-            record_type: 记录类型，可选值: 'A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS'
+            record_type: 记录类型，可选值: 'A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'WHOIS'
             
         Returns:
             只包含指定类型记录的DNSInfo对象
         """
-        domain = domain.strip().lower()
-        if domain.startswith('http://'):
-            domain = domain[7:]
-        elif domain.startswith('https://'):
-            domain = domain[8:]
-        if '/' in domain:
-            domain = domain.split('/')[0]
-        
-        dns_info = DNSInfo(domain=domain, query_time=datetime.now())
+        normalized_domain = self.normalizer.normalize(domain)
+        dns_info = DNSInfo(domain=normalized_domain)
         
         try:
             record_type = record_type.upper()
-            if record_type == 'A':
-                dns_info.a_records = self._query_a_records(domain)
-            elif record_type == 'AAAA':
-                dns_info.aaaa_records = self._query_aaaa_records(domain)
-            elif record_type == 'CNAME':
-                dns_info.cname_records = self._query_cname_records(domain)
-            elif record_type == 'MX':
-                dns_info.mx_records = self._query_mx_records(domain)
-            elif record_type == 'TXT':
-                dns_info.txt_records = self._query_txt_records(domain)
-            elif record_type == 'NS':
-                dns_info.ns_records = self._query_ns_records(domain)
-            elif record_type == 'WHOIS':
-                dns_info.whois_info = self._query_whois_info(domain)
-            else:
-                dns_info.error = f"不支持的记录类型: {record_type}"
+            
+            # WHOIS查询特殊处理
+            if record_type == 'WHOIS':
+                dns_info.whois_info = await AsyncWhoisService.query(normalized_domain)
+                return dns_info
+            
+            # DNS记录查询
+            resolver = DNSResolverFactory.get_resolver(
+                record_type,
+                self.timeout,
+                self.nameservers
+            )
+            records = await resolver.safe_query(normalized_domain)
+            
+            # 根据类型设置对应的记录字段
+            field_name = f"{record_type.lower()}_records"
+            setattr(dns_info, field_name, records)
+            
+        except ValueError as e:
+            dns_info.error = str(e)
         except Exception as e:
             dns_info.error = str(e)
         
         return dns_info
-
