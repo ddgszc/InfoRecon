@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 
 
@@ -12,12 +12,13 @@ class IPInfo(BaseModel):
     # domains: list[str] = Field(default_factory=list, description="反查域名列表，最多5个")
     country: Optional[str] = Field(default=None, description="IP所属国家")
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "ip": "8.8.8.8",
                 "domains": ["dns.google"],
                 "country": "United States"
             }
         }
+    )
 

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 from datetime import datetime
 
@@ -11,12 +11,13 @@ class WebSearchInfo(BaseModel):
     search_time: datetime = Field(default_factory=datetime.now, description="搜索时间")
     error: Optional[str] = Field(default=None, description="错误信息")
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "query": "Python编程",
                 "search_result": "Python是一种编程语言...",
                 "search_time": "2024-01-01T12:00:00"
             }
         }
+    )
 

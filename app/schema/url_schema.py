@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
 from datetime import datetime
 
@@ -11,8 +11,8 @@ class URLAnalysisInfo(BaseModel):
     analysis_time: datetime = Field(default_factory=datetime.now, description="分析时间")
     error: Optional[str] = Field(default=None, description="错误信息")
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "url": "https://example.com",
                 "url_content": "# Example Domain\n\nThis domain is for use in illustrative examples...",
@@ -20,4 +20,5 @@ class URLAnalysisInfo(BaseModel):
                 "analysis_time": "2024-01-01T12:00:00"
             }
         }
+    )
 

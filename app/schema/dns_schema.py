@@ -69,8 +69,8 @@ class WhoisInfo(BaseModel):
     updated_date: Optional[datetime] = Field(default=None, description="更新时间")
     expiration_date: Optional[datetime] = Field(default=None, description="到期时间")
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "registrar": "GoDaddy.com, LLC",
                 "status": ["clientTransferProhibited", "clientUpdateProhibited"],
@@ -79,6 +79,7 @@ class WhoisInfo(BaseModel):
                 "expiration_date": "2025-12-31T23:59:59"
             }
         }
+    )
 
 
 class DNSInfo(BaseModel):
@@ -97,8 +98,8 @@ class DNSInfo(BaseModel):
     whois_info: Optional[WhoisInfo] = Field(default=None, description="WHOIS注册信息")
     error: Optional[str] = Field(default=None, description="错误信息")
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "domain": "example.com",
                 "query_time": "2025-10-24T10:00:00",
@@ -122,4 +123,5 @@ class DNSInfo(BaseModel):
                 ]
             }
         }
+    )
 
