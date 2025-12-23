@@ -1,3 +1,4 @@
+warning: `VIRTUAL_ENV=/root/LangLabs/PhishGuard/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
 /root/LangLabs/InfoRecon/.venv/lib/python3.13/site-packages/crawl4ai/models.py:129: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
   class CrawlResult(BaseModel):
 /root/LangLabs/InfoRecon/.venv/lib/python3.13/site-packages/crawl4ai/models.py:320: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
@@ -23,10 +24,10 @@
 ╰──────────────────────────────────────────────────────────────────────────────╯
 
 
-[12/16/25 14:57:30] INFO     Starting MCP server 'InfoRecon' with server.py:2618
+[12/21/25 17:48:00] INFO     Starting MCP server 'InfoRecon' with server.py:2618
                              transport 'streamable-http' on                     
                              http://0.0.0.0:33668/mcp                           
-INFO:     Started server process [12450]
+INFO:     Started server process [15777]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:33668 (Press CTRL+C to quit)
@@ -34,4 +35,4 @@ INFO:     Shutting down
 ERROR:    Cancel 0 running task(s), timeout graceful shutdown exceeded
 INFO:     Waiting for application shutdown.
 INFO:     Application shutdown complete.
-INFO:     Finished server process [12450]
+INFO:     Finished server process [15777]

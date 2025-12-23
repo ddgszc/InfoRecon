@@ -3,17 +3,8 @@
 # 应用配置
 app_name = "InfoRecon"
 
-# PostgreSQL 数据库配置
-[database]
-host = "127.0.0.1"
-port = 5432
-user = "inforecon"
-password = "inforecon"
-db = "inforecon"
-
-
-# [redis]
-# host = "localhost"
-# port = 6379
-# password = ""
-# db = 0
+[redis]
+host = "inforecon-redis"
+port = 6379
+password = "your-super-secret-password"
+db = 0

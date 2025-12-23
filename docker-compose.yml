@@ -1,14 +1,75 @@
 services:
-  redis-cache:
-    image: redis:latest
-    container_name: my-redis-cache
-    restart: always
+  # --- 服务 1: FastAPI 主程序 (api_run.py) ---
+  inforecon-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: inforecon_image:latest
+    container_name: inforecon-api
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "3"]
+    init: true
     ports:
-      - "6379:6379"
+      - "0.0.0.0:8000:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
     volumes:
-      - my-redis-data:/data
-    command: redis-server --requirepass "your-super-secret-password" --maxmemory 256mb --maxmemory-policy allkeys-lru
+      - ./config.toml:/app/config.toml:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - shared_network
+
+  # --- 服务 2: MCP 服务器 (mcp_run.py) ---
+  inforecon-mcp:
+    # 复用已经构建好的镜像
+    image: inforecon_image:latest
+    container_name: inforecon-mcp
+    # MCP 服务器使用 python 启动，因为 FastMCP 内部已经管理了 uvicorn
+    command: ["/app/.venv/bin/python", "mcp_run.py", "--host", "0.0.0.0", "--port", "33668"]
+    init: true
+    ports:
+      - "0.0.0.0:33668:33668"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - ./config.toml:/app/config.toml:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - shared_network
+
+  # --- 服务 3: Redis ---
+  redis:
+    image: redis:7.4.5
+    container_name: inforecon-redis
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --requirepass "your-super-secret-password" --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "your-super-secret-password", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      shared_network
+
+
+networks:
+  shared_net:
+    external: true
+    name: shared_net
 
 volumes:
-  my-redis-data:
+  redis_data:
     driver: local
