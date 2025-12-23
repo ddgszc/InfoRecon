@@ -64,7 +64,6 @@ services:
     networks:
       - shared_network
 
-
 networks:
   shared_net:
     external: true
