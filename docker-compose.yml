@@ -52,7 +52,7 @@ services:
     container_name: inforecon-redis
     restart: unless-stopped
     ports:
-      - "0.0.0.0:6379:6379"
+      - "0.0.0.0:26379:6379"
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes --requirepass "your-super-secret-password" --maxmemory 256mb --maxmemory-policy allkeys-lru
