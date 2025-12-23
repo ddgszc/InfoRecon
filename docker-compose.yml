@@ -62,7 +62,8 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - shared_network
+      - shared_net
+
 
 networks:
   shared_net:
