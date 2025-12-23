@@ -21,7 +21,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
     networks:
-      - shared_network
+      - shared_net
 
   # --- 服务 2: MCP 服务器 (mcp_run.py) ---
   inforecon-mcp:
@@ -44,7 +44,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
     networks:
-      - shared_network
+      - shared_net
 
   # --- 服务 3: Redis ---
   redis:
