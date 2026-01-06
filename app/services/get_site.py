@@ -46,7 +46,7 @@ class URLAnalyzer:
         # 如果没有协议，添加默认协议进行校验
         test_url = url
         if not url.startswith(("http://", "https://")):
-            test_url = f"https://{url}"
+            test_url = f"http://{url}"
         
         try:
             result = urlparse(test_url)
